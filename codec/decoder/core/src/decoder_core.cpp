@@ -205,6 +205,8 @@ static inline int32_t DecodeFrameConstruction (PWelsDecoderContext pCtx, uint8_t
 
   pCtx->iTotalNumMbRec = 0;
 
+  // Calder: This is where the data is written -------------------------------------------------------------------
+
   //////output:::normal path
   pDstInfo->uiOutYuvTimeStamp = pPic->uiTimeStamp;
   ppDst[0]      = pPic->pData[0];
@@ -217,9 +219,11 @@ static inline int32_t DecodeFrameConstruction (PWelsDecoderContext pCtx, uint8_t
   pDstInfo->UsrData.sSystemBuffer.iHeight = kiActualHeight;
   pDstInfo->UsrData.sSystemBuffer.iStride[0] = pPic->iLinesize[0];
   pDstInfo->UsrData.sSystemBuffer.iStride[1] = pPic->iLinesize[1];
+  // Calder: I don't understand what is being done here.
   ppDst[0] = ppDst[0] + pCtx->sFrameCrop.iTopOffset * 2 * pPic->iLinesize[0] + pCtx->sFrameCrop.iLeftOffset * 2;
   ppDst[1] = ppDst[1] + pCtx->sFrameCrop.iTopOffset  * pPic->iLinesize[1] + pCtx->sFrameCrop.iLeftOffset;
   ppDst[2] = ppDst[2] + pCtx->sFrameCrop.iTopOffset  * pPic->iLinesize[1] + pCtx->sFrameCrop.iLeftOffset;
+  // Calder: ----------------------------------------------------------------------------------------------------
   for (int i = 0; i < 3; ++i) {
     pDstInfo->pDst[i] = ppDst[i];
   }
@@ -2350,6 +2354,7 @@ int32_t ConstructAccessUnit (PWelsDecoderContext pCtx, uint8_t** ppDst, SBufferI
     WELS_VERIFY_RETURN_IF (ERR_INFO_OUT_OF_MEMORY, (NULL == pCtx->pCabacDecEngine))
   }
 
+  // Calder: it would appear this is the only place this functions is called (this is good)
   iErr = DecodeCurrentAccessUnit (pCtx, ppDst, pDstInfo);
 
   WelsDecodeAccessUnitEnd (pCtx);
@@ -2829,6 +2834,7 @@ int32_t DecodeCurrentAccessUnit (PWelsDecoderContext pCtx, uint8_t** ppDst, SBuf
         }
         pCtx->pLastDecPicInfo->uiDecodingTimeStamp = pCtx->uiDecodingTimeStamp;
       }
+      // Calder: This is the only use of ppDst (the output buffer?? I think so) in the entire function.
       iRet = DecodeFrameConstruction (pCtx, ppDst, pDstInfo);
       if (iRet) {
         if (iThreadCount > 1) {

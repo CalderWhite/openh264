@@ -1592,6 +1592,7 @@ int32_t WelsDecodeSlice (PWelsDecoderContext pCtx, bool bFirstSliceInLayer, PNal
 
     pCurDqLayer->pSliceIdc[iNextMbXyIndex] = iSliceIdc;
     pCtx->bMbRefConcealed = false;
+    // Calder: Is this where the lossless decompression is done?
     iRet = pDecMbFunc (pCtx,  pNalCur, uiEosFlag);
     pCurDqLayer->pMbRefConcealedFlag[iNextMbXyIndex] = pCtx->bMbRefConcealed;
     if (iRet != ERR_NONE) {

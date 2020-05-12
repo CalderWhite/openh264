@@ -791,6 +791,7 @@ DECODING_STATE CWelsDecoder::DecodeFrame2WithCtx (PWelsDecoderContext pDecContex
   } else {
     pDecContext->uiTimeStamp = 0;
   }
+  // Calder: This is where the frame decoder leads to
   WelsDecodeBs (pDecContext, kpSrc, kiSrcLen, ppDst,
                 pDstInfo, NULL); //iErrorCode has been modified in this function
   pDecContext->bInstantDecFlag = false; //reset no-delay flag
