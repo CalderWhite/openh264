@@ -25,7 +25,7 @@ public:
 
 private:
   // The number of total bits in the outgoing bitstream
-  uint64_t m_bit_size;
+  uint64_t m_bit_size = 0;
 
   // The next byte to be written to the file which is currently being constructed
   uint8_t m_next_byte;

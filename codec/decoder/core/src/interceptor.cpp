@@ -17,17 +17,19 @@ CabacCapture::CabacCapture(std::string filename) {
 }
 
 CabacCapture::~CabacCapture() {
+  // the last byte will never be written, so flush it to the file.
+  m_file << m_next_byte;
+
   m_file.close();
 }
 
 void CabacCapture::captureCabac(uint32_t val) {
   m_next_byte |= val << (m_bit_size%8);
 
-  if (m_bit_size%8 == 0) {
+  if ((++m_bit_size)%8 == 0) {
     m_file << m_next_byte;
+    m_next_byte = 0;
   }
-
-  ++m_bit_size;
 }
 
 // CabacMock functions
