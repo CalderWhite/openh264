@@ -73,6 +73,9 @@ extern "C" {
 #include <sys/time.h>
 #endif
 
+#include <iostream>
+#include "../../common/inc/CabacInterceptorMode.h"
+
 namespace WelsDec {
 
 //////////////////////////////////////////////////////////////////////
@@ -468,6 +471,18 @@ int32_t CWelsDecoder::ThreadResetDecoder (PWelsDecoderContext& pCtx) {
     WelsLog (&m_pWelsTrace->m_sLogCtx, WELS_LOG_ERROR, "ResetDecoder() failed as decoder context null");
   }
   return ERR_INFO_UNINIT;
+}
+
+void CWelsDecoder::cw_SetFilename(std::string filename) {
+  for (int32_t i=0; i<m_iCtxCount; ++i) {
+    m_pDecThrCtx[i].pCtx->cw_filename = filename;
+  }
+}
+
+void CWelsDecoder::cw_SetCabacInterceptorMode(cwhite::CabacInterceptorMode mode) {
+  for (int32_t i=0; i<m_iCtxCount; ++i) {
+    m_pDecThrCtx[i].pCtx->cw_mode = mode;
+  }
 }
 
 /*

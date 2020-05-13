@@ -52,6 +52,9 @@ typedef unsigned char bool;
 #define EXTAPI
 #endif
 
+#include <string>
+#include "../../common/inc/CabacInterceptorMode.h"
+
 /**
   * @file codec_api.h
 */
@@ -452,6 +455,18 @@ class ISVCDecoder {
       int& iColorFormat) = 0;
 
   /**
+   * @brief Added method by Calder White to set the output filename for the Cabac Interceptor.
+   * @param filename The name of the file for data to be outputted to (regardless of mode).
+   */
+  virtual void EXTAPI cw_SetFilename(std::string filename) = 0;
+
+  /**
+   * @brief Sets Cabac Interceptor mode which determines the functionality of the tool.
+   * @param mode The mode to be set (Refer to the enum's definition).
+   */
+  virtual void EXTAPI cw_SetCabacInterceptorMode(cwhite::CabacInterceptorMode mode) = 0;
+
+  /**
   * @brief   Set option for decoder, detail option type, please refer to enumurate DECODER_OPTION.
   * @param   pOption  option for decoder such as OutDataFormat, Eos Flag, EC method, ...
   * @return  CM_RETURN: 0 - success; otherwise - failed;
@@ -531,6 +546,8 @@ DECODING_STATE (*DecodeFrameEx) (ISVCDecoder*, const unsigned char* pSrc,
                                  int* iHeight,
                                  int* iColorFormat);
 
+void (*cw_SetFilename) (ISVCDecoder*, std::string);
+void (*cw_SetCabacInterceptorMode) (ISVCDecoder*, cwhite::CabacInterceptorMode);
 long (*SetOption) (ISVCDecoder*, DECODER_OPTION eOptionId, void* pOption);
 long (*GetOption) (ISVCDecoder*, DECODER_OPTION eOptionId, void* pOption);
 };

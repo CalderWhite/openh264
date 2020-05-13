@@ -67,6 +67,7 @@ int    g_iDecodedFrameNum = 0;
 #define fprintf(a, ...) LOGI(__VA_ARGS__)
 #endif
 //using namespace WelsDec;
+#include <iostream>
 
 int32_t readPicture (uint8_t* pBuf, const int32_t& iFileSize, const int32_t& bufPos, uint8_t*& pSpsBuf,
                      int32_t& sps_byte_count) {
@@ -457,6 +458,10 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
   sDecParam.sVideoProperty.size = sizeof (sDecParam.sVideoProperty);
   sDecParam.eEcActiveIdc = ERROR_CON_SLICE_MV_COPY_CROSS_IDR_FREEZE_RES_CHANGE;
 
+  // CabacInterceptor Variables
+  std::string cw_filename;
+  cwhite::CabacInterceptorMode cw_mode = cwhite::CabacInterceptorMode::Default;
+
   if (iArgC < 2) {
     printf ("usage 1: h264dec.exe welsdec.cfg\n");
     printf ("usage 2: h264dec.exe welsdec.264 out.yuv\n");
@@ -550,6 +555,13 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
           }
         } else if (!strcmp (cmd, "-legacy")) {
           bLegacyCalling = true;
+        } else if (!strcmp (cmd, "--capture-cabac")) {
+          // this is not extensible, but I don't want to revamp the way argument parsing is done right now.
+          cw_filename = pArgV[iArgC-1];
+          cw_mode = cwhite::CabacInterceptorMode::Capturing;
+        } else if (!strcmp (cmd, "--mock-cabac")) {
+          cw_filename = pArgV[iArgC-1];
+          cw_mode = cwhite::CabacInterceptorMode::Mocking;
         }
       }
     }
@@ -564,9 +576,6 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
     printf ("No input file specified in configuration file.\n");
     return 1;
   }
-
-
-
 
   if (WelsCreateDecoder (&pDecoder)  || (NULL == pDecoder)) {
     printf ("Create Decoder failed.\n");
@@ -583,6 +592,9 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
     printf ("Decoder initialization failed.\n");
     return 1;
   }
+
+  pDecoder->cw_SetFilename(cw_filename);
+  pDecoder->cw_SetCabacInterceptorMode(cw_mode);
 
 
   int32_t iWidth = 0;

@@ -48,6 +48,8 @@
 #include "welsCodecTrace.h"
 #include "cpu.h"
 
+#include "../../common/inc/CabacInterceptorMode.h"
+
 class ISVCDecoder;
 
 namespace WelsDec {
@@ -105,6 +107,9 @@ class CWelsDecoder : public ISVCDecoder {
       int& iWidth,
       int& iHeight,
       int& color_format);
+
+  virtual void EXTAPI cw_SetFilename(std::string filename);
+  virtual void EXTAPI cw_SetCabacInterceptorMode(cwhite::CabacInterceptorMode mode);
 
   virtual long EXTAPI SetOption (DECODER_OPTION eOptID, void* pOption);
   virtual long EXTAPI GetOption (DECODER_OPTION eOptID, void* pOption);

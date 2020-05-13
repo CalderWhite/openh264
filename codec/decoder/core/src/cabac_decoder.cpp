@@ -31,87 +31,51 @@
  *      cabac_decoder.cpp:      deals with cabac state transition and related functions
  */
 #include "cabac_decoder.h"
-// Calder:
+
 #include <iostream>
-#include <vector>
-#include <cstdlib>
-#include <fstream>
-namespace cwhite {
-// when true, we write the captured the bitstream into a file
-// when false, we ignore the captured bits and instead use a captured file to feed the decoder
-const bool CAPTURING = false;
-const bool READING = !CAPTURING;
-
-// STL vectors are known to not be the most optimized vector template,
-// but we don't care about performance too much right now.
-// Also, although there are existing bitstream implementations, I want to try and minimize
-// my footprint in this code, so I have decided to just use a vector of uint8_t types and
-// selectively set the bits of each uint8_t.
-
-std::vector<uint8_t> bitstream;
-uint64_t size = 0;
-
-// CAPTURING FUNCTIONS: -----------------------------------------------------------------------------
-// These functions are for capturing the decompressed cabac data from the decoder
-void captureCabac(uint32_t val) {
-  // every 8 bits, push back a new byte
-  if (size%8 == 0) {
-      bitstream.push_back(0);
-  }
-  // write to the last added byte, and select the current bit
-  bitstream[bitstream.size()-1] |= val << (size%8);
-
-  ++size;
-}
-
-void writeCaptured() {
-  std::fstream outfile("captured_lossy.bin", std::ios::out | std::ios::binary);
-  outfile.write((char*)&bitstream[0], bitstream.size());
-  outfile.close();
-}
-
-// FEEDER FUNCTIONS: --------------------------------------------------------------------------------
-// These functions are for feeding a decompressed cabac stream to the decoder. This is used for testing
-// the integrity of the data compressed by any external compressor.
-uint64_t feeder_index = 0;
-void initFeeder() {
-  // std::vector is not the most efficient for this & using push_back may also not be the most efficient,
-  // but this code is sufficient for now.
-  std::fstream infile("captured_lossy.bin", std::ios::in | std::ios::binary);
-  char c;
-  while (infile) {
-    infile.get(c);
-    bitstream.push_back(static_cast<uint8_t>(c));
-  }
-}
-
-// returns the next bit in the uncompressed bitstream.
-uint32_t getNextBit() {
-  uint32_t ret = (bitstream[feeder_index/8] >> (feeder_index%8)) & 1;
-  ++feeder_index;
-
-  return ret;
-}
-
-// ALL FUNCTIONS: -----------------------------------------------------------------------------------
-void init() {
-  if (CAPTURING) {
-    // this is a hacky way to export the data once the encoder is done.
-    std::atexit(writeCaptured);
-  } else {
-    initFeeder();
-  }
-}
-
-} // namespace cwhite
-// end Calder
+#include "../../../common/inc/CabacInterceptorMode.h"
+#include "interceptor.h"
 
 namespace WelsDec {
 static const int16_t g_kMvdBinPos2Ctx [8] = {0, 1, 2, 3, 3, 3, 3, 3};
 
+// empty constructors because I don't want to deal with dynamic stuff
+cwhite::CabacCapture* cw_capture;
+cwhite::CabacMock* cw_mock;
+
+cwhite::CabacInterceptorMode cw_interceptor_mode;
+
+void destroyInterceptors() {
+  switch (cw_interceptor_mode) {
+    case cwhite::CabacInterceptorMode::Default:
+      break;
+    case cwhite::CabacInterceptorMode::Capturing:
+      delete cw_capture;
+      break;
+    case cwhite::CabacInterceptorMode::Mocking:
+      delete cw_mock;
+      break;
+   }
+}
+
 void WelsCabacGlobalInit (PWelsDecoderContext pCtx) {
   // this is only called once, so we can run all of our intercepting init code here too
-  cwhite::init();
+  cw_interceptor_mode = pCtx->cw_mode;
+  switch (cw_interceptor_mode) {
+    case cwhite::CabacInterceptorMode::Default:
+      break;
+    case cwhite::CabacInterceptorMode::Capturing:
+      cw_capture = new cwhite::CabacCapture(pCtx->cw_filename);
+      break;
+    case cwhite::CabacInterceptorMode::Mocking:
+      cw_mock = new cwhite::CabacMock(pCtx->cw_filename);
+      break;
+  }
+
+  // hackey way to destroy the objects:
+  // FIXME: this doesn't really matter anyway... if you are going to include this library there will
+  // still be a memory leak.
+  std::atexit(destroyInterceptors);
 
   for (int32_t iModel = 0; iModel < 4; iModel++) {
     for (int32_t iQp = 0; iQp <= WELS_QP_MAX; iQp++)
@@ -216,8 +180,8 @@ int32_t Read32BitsCabac (PWelsCabacDecEngine pDecEngine, uint32_t& uiValue, int3
 }
 
 int32_t DecodeBinCabac (PWelsCabacDecEngine pDecEngine, PWelsCabacCtx pBinCtx, uint32_t& uiBinVal) {
-  if (cwhite::READING) {
-    uiBinVal = cwhite::getNextBit();
+  if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Mocking) {
+    uiBinVal = cw_mock->getNextBit();
     return ERR_NONE;
   }
 
@@ -245,8 +209,11 @@ int32_t DecodeBinCabac (PWelsCabacDecEngine pDecEngine, PWelsCabacCtx pBinCtx, u
     pBinCtx->uiState = g_kuiStateTransTable[uiState][1];
     if (uiRange >= WELS_CABAC_QUARTER) {
       pDecEngine->uiRange = uiRange;
-      // Calder: intercept values
-      cwhite::captureCabac(uiBinVal);
+
+      if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Capturing) {
+        cw_capture->captureCabac(uiBinVal);
+      }
+
       return ERR_NONE;
     } else {
       uiRange <<= 1;
@@ -259,8 +226,11 @@ int32_t DecodeBinCabac (PWelsCabacDecEngine pDecEngine, PWelsCabacCtx pBinCtx, u
   //         and will not read a chunk until it has to. This could be decompression too.
   if (pDecEngine->iBitsLeft > 0) {
     pDecEngine->uiOffset = uiOffset;
-    // Calder: intercept values
-    cwhite::captureCabac(uiBinVal);
+
+    if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Capturing) {
+      cw_capture->captureCabac(uiBinVal);
+    }
+
     return ERR_NONE;
   }
   uint32_t uiVal = 0;
@@ -270,8 +240,10 @@ int32_t DecodeBinCabac (PWelsCabacDecEngine pDecEngine, PWelsCabacCtx pBinCtx, u
   pDecEngine->uiOffset = (uiOffset << iNumBitsRead) | uiVal;
   pDecEngine->iBitsLeft += iNumBitsRead;
 
-  // Calder: intercept values
-  cwhite::captureCabac(uiBinVal);
+  if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Capturing) {
+    cw_capture->captureCabac(uiBinVal);
+  }
+
   if (iErrorInfo && pDecEngine->iBitsLeft < 0) {
     return iErrorInfo;
   }
@@ -279,8 +251,8 @@ int32_t DecodeBinCabac (PWelsCabacDecEngine pDecEngine, PWelsCabacCtx pBinCtx, u
 }
 
 int32_t DecodeBypassCabac (PWelsCabacDecEngine pDecEngine, uint32_t& uiBinVal) {
-  if (cwhite::READING) {
-    uiBinVal = cwhite::getNextBit();
+  if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Mocking) {
+    uiBinVal = cw_mock->getNextBit();
     return ERR_NONE;
   }
 
@@ -308,21 +280,27 @@ int32_t DecodeBypassCabac (PWelsCabacDecEngine pDecEngine, uint32_t& uiBinVal) {
     pDecEngine->iBitsLeft = iBitsLeft;
     pDecEngine->uiOffset = uiOffset - uiRangeValue;
     uiBinVal = 1;
-    // Calder: intercept values
-    cwhite::captureCabac(uiBinVal);
+
+    if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Capturing) {
+      cw_capture->captureCabac(uiBinVal);
+    }
+
     return ERR_NONE;
   }
   pDecEngine->iBitsLeft = iBitsLeft;
   pDecEngine->uiOffset = uiOffset;
   uiBinVal = 0;
-  // Calder: intercept values
-  cwhite::captureCabac(uiBinVal);
+
+  if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Capturing) {
+    cw_capture->captureCabac(uiBinVal);
+  }
+
   return ERR_NONE;
 }
 
 int32_t DecodeTerminateCabac (PWelsCabacDecEngine pDecEngine, uint32_t& uiBinVal) {
-  if (cwhite::READING) {
-    uiBinVal = cwhite::getNextBit();
+  if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Mocking) {
+    uiBinVal = cw_mock->getNextBit();
     return ERR_NONE;
   }
 
@@ -332,12 +310,17 @@ int32_t DecodeTerminateCabac (PWelsCabacDecEngine pDecEngine, uint32_t& uiBinVal
 
   if (uiOffset >= (uiRange << pDecEngine->iBitsLeft)) {
     uiBinVal = 1;
-    // Calder: intercept values
-    cwhite::captureCabac(uiBinVal);
+
+    if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Capturing) {
+      cw_capture->captureCabac(uiBinVal);
+    }
   } else {
     uiBinVal = 0;
-    // Calder: intercept values
-    cwhite::captureCabac(uiBinVal);
+
+    if (cw_interceptor_mode == cwhite::CabacInterceptorMode::Capturing) {
+      cw_capture->captureCabac(uiBinVal);
+    }
+
     // Renorm
     if (uiRange < WELS_CABAC_QUARTER) {
       int32_t iRenorm = g_kRenormTable256[uiRange];

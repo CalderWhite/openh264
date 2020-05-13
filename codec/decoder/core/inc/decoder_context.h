@@ -58,6 +58,10 @@
 #include "memory_align.h"
 #include "wels_decoder_thread.h"
 
+#include "../../../common/inc/CabacInterceptorMode.h"
+
+#include <string>
+
 namespace WelsDec {
 #define MAX_PRED_MODE_ID_I16x16  3
 #define MAX_PRED_MODE_ID_CHROMA  3
@@ -513,6 +517,15 @@ typedef struct TagWelsDecoderContext {
   int16_t lastReadyHeightOffset[LIST_A][MAX_REF_PIC_COUNT]; //last ready reference MB offset
   PPictInfo               pPictInfoList;
   PPictReoderingStatus    pPictReoderingStatus;
+
+  // Calder Stuff ------------------------------------------------------------------------
+  // this can be the name of the in file for the CabacMock or the out file for the CabacCapture
+  // Note: I'm not sure how many times this context is copied. If it is often, then this might
+  //       significantly degrade the performance of the decoder (YIKES!). If you are having
+  //       performance issues, make sure this is not the issue.
+  std::string cw_filename;
+  cwhite::CabacInterceptorMode cw_mode = cwhite::CabacInterceptorMode::Default;
+
 } SWelsDecoderContext, *PWelsDecoderContext;
 
 typedef struct tagSWelsDecThread {
