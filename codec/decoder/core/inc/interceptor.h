@@ -43,8 +43,9 @@ public:
 
 private:
   // The current byte that is being read, which will be updated after
-  // each of its 8 bits have been read.
-  uint8_t m_next_byte;
+  // each of its 8 bits have been read. We use a char so we don't have to
+  // cast what is read from the file.
+  char m_next_byte;
 
   // the current bit's index in the entire bitstream
   uint64_t m_bit_index = 0;

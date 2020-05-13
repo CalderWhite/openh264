@@ -593,9 +593,11 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
     return 1;
   }
 
-  pDecoder->cw_SetFilename(cw_filename);
+  if (cw_mode != cwhite::CabacInterceptorMode::Default) {
+    pDecoder->cw_SetFilename(cw_filename);
+  }
   pDecoder->cw_SetCabacInterceptorMode(cw_mode);
-
+  std::cout << "Done.\n";
 
   int32_t iWidth = 0;
   int32_t iHeight = 0;

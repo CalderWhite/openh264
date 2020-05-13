@@ -43,7 +43,9 @@ CabacMock::~CabacMock() {
 
 int32_t CabacMock::getNextBit() {
   if (m_bit_index%8 == 0) {
-    m_file >> m_next_byte;
+    // this could be removed if m_next_byte was a char instead of a uint8_t
+    // however, I like using that type and I feel like the compiler will optimize this out anyway
+    m_file.get(m_next_byte);
   }
 
   uint32_t ret = (m_next_byte >> (m_bit_index%8)) & 1;
