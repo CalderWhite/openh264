@@ -597,7 +597,6 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
     pDecoder->cw_SetFilename(cw_filename);
   }
   pDecoder->cw_SetCabacInterceptorMode(cw_mode);
-  std::cout << "Done.\n";
 
   int32_t iWidth = 0;
   int32_t iHeight = 0;
