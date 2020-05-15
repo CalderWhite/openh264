@@ -557,10 +557,10 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
           bLegacyCalling = true;
         } else if (!strcmp (cmd, "--capture-cabac")) {
           // this is not extensible, but I don't want to revamp the way argument parsing is done right now.
-          cw_filename = pArgV[iArgC-1];
+          cw_filename = pArgV[++i];
           cw_mode = cwhite::CabacInterceptorMode::Capturing;
         } else if (!strcmp (cmd, "--mock-cabac")) {
-          cw_filename = pArgV[iArgC-1];
+          cw_filename = pArgV[++i];
           cw_mode = cwhite::CabacInterceptorMode::Mocking;
         }
       }
