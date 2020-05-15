@@ -39,7 +39,6 @@
 namespace WelsDec {
 static const int16_t g_kMvdBinPos2Ctx [8] = {0, 1, 2, 3, 3, 3, 3, 3};
 
-// empty constructors because I don't want to deal with dynamic stuff
 cwhite::CabacCapture* cw_capture;
 cwhite::CabacMock* cw_mock;
 
