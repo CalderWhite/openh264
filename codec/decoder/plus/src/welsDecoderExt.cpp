@@ -485,6 +485,10 @@ void CWelsDecoder::cw_SetCabacInterceptorMode(cwhite::CabacInterceptorMode mode)
   }
 }
 
+cwhite::CabacInterceptorMode CWelsDecoder::cw_GetCabacInterceptorMode() {
+  return m_pDecThrCtx[0].pCtx->cw_mode;
+}
+
 /*
  * Set Option
  */

@@ -191,6 +191,10 @@ void H264DecodeInstance (ISVCDecoder* pDecoder, const char* kpH264FileName, cons
   uint8_t* pData[3] = {NULL};
   uint8_t* pDst[3] = {NULL};
   SBufferInfo sDstBufInfo;
+  // Calder: If we are doing a --capture-cabac, we want to only parse the bitstream and not decode the frames.
+  //         this will DRAMATICALLY improve performance.
+  SParserBsInfo sDstParseInfo;
+  uint32_t PARSE_SIZE = 1024*1024*8; // for a (max?) bitrate of 64Mb/s
 
   int32_t iBufPos = 0;
   int32_t iFileSize;
@@ -339,10 +343,26 @@ void H264DecodeInstance (ISVCDecoder* pDecoder, const char* kpH264FileName, cons
     uiTimeStamp ++;
     memset (&sDstBufInfo, 0, sizeof (SBufferInfo));
     sDstBufInfo.uiInBsTimeStamp = uiTimeStamp;
+
+    bool cw_capturing = pDecoder->cw_GetCabacInterceptorMode() == cwhite::CabacInterceptorMode::Capturing;
+    if (cw_capturing) {
+      memset(&sDstParseInfo, 0, sizeof(SParserBsInfo));
+      sDstParseInfo.pDstBuff = new unsigned char[PARSE_SIZE];
+    }
+
+    // these ifs based on cw_capturing are to prevent the decoder from decoding frames if we are in Capturing mode (--capture-cabac).
     if (!bLegacyCalling) {
-      pDecoder->DecodeFrameNoDelay (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
+      if (cw_capturing) {
+        pDecoder->DecodeParser(pBuf + iBufPos, iSliceSize, &sDstParseInfo);
+      } else {
+        pDecoder->DecodeFrameNoDelay (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
+      }
     } else {
-      pDecoder->DecodeFrame2 (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
+      if (cw_capturing) {
+        pDecoder->DecodeParser(pBuf + iBufPos, iSliceSize, &sDstParseInfo);
+      } else {
+        pDecoder->DecodeFrame2 (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
+      }
     }
 
     if (sDstBufInfo.iBufferStatus == 1) {
@@ -376,7 +396,15 @@ void H264DecodeInstance (ISVCDecoder* pDecoder, const char* kpH264FileName, cons
       pData[2] = NULL;
       memset (&sDstBufInfo, 0, sizeof (SBufferInfo));
       sDstBufInfo.uiInBsTimeStamp = uiTimeStamp;
-      pDecoder->DecodeFrame2 (NULL, 0, pData, &sDstBufInfo);
+
+      if (cw_capturing) {
+        memset(&sDstParseInfo, 0, sizeof(SParserBsInfo));
+        sDstParseInfo.pDstBuff = new unsigned char[PARSE_SIZE];
+        pDecoder->DecodeParser(NULL, 0, &sDstParseInfo);
+      } else {
+        pDecoder->DecodeFrame2 (NULL, 0, pData, &sDstBufInfo);
+      }
+
       if (sDstBufInfo.iBufferStatus == 1) {
         pDst[0] = sDstBufInfo.pDst[0];
         pDst[1] = sDstBufInfo.pDst[1];
@@ -451,6 +479,7 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
   ISVCDecoder* pDecoder = NULL;
 
   SDecodingParam sDecParam = {0};
+
   string strInputFile (""), strOutputFile (""), strOptionFile (""), strLengthFile ("");
   int iLevelSetting = (int) WELS_LOG_WARNING;
   bool bLegacyCalling = false;
@@ -556,10 +585,17 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
         } else if (!strcmp (cmd, "-legacy")) {
           bLegacyCalling = true;
         } else if (!strcmp (cmd, "--capture-cabac")) {
+          printf("WARNING: Cabac Interceptor Enabled. No yuv file will be generated.\n");
           // this is not extensible, but I don't want to revamp the way argument parsing is done right now.
           cw_filename = pArgV[++i];
           cw_mode = cwhite::CabacInterceptorMode::Capturing;
+
+          // Calder: If we are running a --capture-cabac then don't decode the frames parsed from the bitstream.
+          //         This will SIGNIFICANTLY improve performance
+          sDecParam.bParseOnly = true;
         } else if (!strcmp (cmd, "--mock-cabac")) {
+          printf("WARNING: Cabac Interceptor Enabled. The input .h264 file will be ignored but should be the"
+                 " original file used to generate the binary input.\n");
           cw_filename = pArgV[++i];
           cw_mode = cwhite::CabacInterceptorMode::Mocking;
         }

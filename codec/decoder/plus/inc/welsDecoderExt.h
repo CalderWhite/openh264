@@ -110,6 +110,7 @@ class CWelsDecoder : public ISVCDecoder {
 
   virtual void EXTAPI cw_SetFilename(std::string filename);
   virtual void EXTAPI cw_SetCabacInterceptorMode(cwhite::CabacInterceptorMode mode);
+  virtual cwhite::CabacInterceptorMode EXTAPI cw_GetCabacInterceptorMode();
 
   virtual long EXTAPI SetOption (DECODER_OPTION eOptID, void* pOption);
   virtual long EXTAPI GetOption (DECODER_OPTION eOptID, void* pOption);

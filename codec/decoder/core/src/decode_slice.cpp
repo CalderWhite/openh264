@@ -872,7 +872,12 @@ int32_t WelsDecodeMbCabacPSliceBaseMode0 (PWelsDecoderContext pCtx, PWelsNeighAv
 
   pCurDqLayer->pInterPredictionDoneFlag[iMbXy] = 0;
 
+  // Calder: I am assuming this is where all the cabac decompression is done
+  // Calder -- UPDATE: This is only one of the places it is done.
   WELS_READ_VERIFY (ParseMBTypePSliceCabac (pCtx, pNeighAvail, uiMbType));
+//  return ERR_NONE;
+
+
   // uiMbType = 4 is not allowded.
   if (uiMbType < 4) { //Inter mode
     int16_t pMotionVector[LIST_A][30][MV_A];
@@ -1109,7 +1114,9 @@ int32_t WelsDecodeMbCabacBSliceBaseMode0 (PWelsDecoderContext pCtx, PWelsNeighAv
 
   pCurDqLayer->pInterPredictionDoneFlag[iMbXy] = 0;
 
+  // Calder: I think this is where the cabac decoding is done for the B slice.
   WELS_READ_VERIFY (ParseMBTypeBSliceCabac (pCtx, pNeighAvail, uiMbType));
+//  return ERR_NONE;
 
   if (uiMbType < 23) { //Inter B mode
     int16_t pMotionVector[LIST_A][30][MV_A];

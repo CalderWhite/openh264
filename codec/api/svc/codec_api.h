@@ -466,6 +466,8 @@ class ISVCDecoder {
    */
   virtual void EXTAPI cw_SetCabacInterceptorMode(cwhite::CabacInterceptorMode mode) = 0;
 
+  virtual cwhite::CabacInterceptorMode EXTAPI cw_GetCabacInterceptorMode() = 0;
+
   /**
   * @brief   Set option for decoder, detail option type, please refer to enumurate DECODER_OPTION.
   * @param   pOption  option for decoder such as OutDataFormat, Eos Flag, EC method, ...
@@ -548,6 +550,7 @@ DECODING_STATE (*DecodeFrameEx) (ISVCDecoder*, const unsigned char* pSrc,
 
 void (*cw_SetFilename) (ISVCDecoder*, std::string);
 void (*cw_SetCabacInterceptorMode) (ISVCDecoder*, cwhite::CabacInterceptorMode);
+cwhite::CabacInterceptorMode (*cw_GetCabacInterceptorMode) (ISVCDecoder*);
 long (*SetOption) (ISVCDecoder*, DECODER_OPTION eOptionId, void* pOption);
 long (*GetOption) (ISVCDecoder*, DECODER_OPTION eOptionId, void* pOption);
 };
