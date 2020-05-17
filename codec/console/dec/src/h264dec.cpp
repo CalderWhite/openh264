@@ -195,6 +195,8 @@ void H264DecodeInstance (ISVCDecoder* pDecoder, const char* kpH264FileName, cons
   //         this will DRAMATICALLY improve performance.
   SParserBsInfo sDstParseInfo;
   uint32_t PARSE_SIZE = 1024*1024*8; // for a (max?) bitrate of 64Mb/s
+  sDstParseInfo.pDstBuff = new unsigned char[PARSE_SIZE];
+  bool cw_capturing = pDecoder->cw_GetCabacInterceptorMode() == cwhite::CabacInterceptorMode::Capturing;
 
   int32_t iBufPos = 0;
   int32_t iFileSize;
@@ -344,10 +346,8 @@ void H264DecodeInstance (ISVCDecoder* pDecoder, const char* kpH264FileName, cons
     memset (&sDstBufInfo, 0, sizeof (SBufferInfo));
     sDstBufInfo.uiInBsTimeStamp = uiTimeStamp;
 
-    bool cw_capturing = pDecoder->cw_GetCabacInterceptorMode() == cwhite::CabacInterceptorMode::Capturing;
     if (cw_capturing) {
       memset(&sDstParseInfo, 0, sizeof(SParserBsInfo));
-      sDstParseInfo.pDstBuff = new unsigned char[PARSE_SIZE];
     }
 
     // these ifs based on cw_capturing are to prevent the decoder from decoding frames if we are in Capturing mode (--capture-cabac).
@@ -399,7 +399,6 @@ void H264DecodeInstance (ISVCDecoder* pDecoder, const char* kpH264FileName, cons
 
       if (cw_capturing) {
         memset(&sDstParseInfo, 0, sizeof(SParserBsInfo));
-        sDstParseInfo.pDstBuff = new unsigned char[PARSE_SIZE];
         pDecoder->DecodeParser(NULL, 0, &sDstParseInfo);
       } else {
         pDecoder->DecodeFrame2 (NULL, 0, pData, &sDstBufInfo);
