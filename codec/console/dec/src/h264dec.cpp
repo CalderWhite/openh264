@@ -339,10 +339,18 @@ void H264DecodeInstance (ISVCDecoder* pDecoder, const char* kpH264FileName, cons
     uiTimeStamp ++;
     memset (&sDstBufInfo, 0, sizeof (SBufferInfo));
     sDstBufInfo.uiInBsTimeStamp = uiTimeStamp;
+
+    const int32_t PARSE_SIZE = 1024*1024;
+    SParserBsInfo sDstParseInfo;
+    memset(&sDstParseInfo, 0, sizeof(SParserBsInfo));
+    sDstParseInfo.pDstBuff = new unsigned char[PARSE_SIZE];
+
     if (!bLegacyCalling) {
-      pDecoder->DecodeFrameNoDelay (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
+//      pDecoder->DecodeFrameNoDelay (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
+      pDecoder->DecodeParser(pBuf + iBufPos, iSliceSize, &sDstParseInfo);
     } else {
-      pDecoder->DecodeFrame2 (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
+//      pDecoder->DecodeFrame2 (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
+      pDecoder->DecodeParser(pBuf + iBufPos, iSliceSize, &sDstParseInfo);
     }
 
     if (sDstBufInfo.iBufferStatus == 1) {
@@ -376,7 +384,9 @@ void H264DecodeInstance (ISVCDecoder* pDecoder, const char* kpH264FileName, cons
       pData[2] = NULL;
       memset (&sDstBufInfo, 0, sizeof (SBufferInfo));
       sDstBufInfo.uiInBsTimeStamp = uiTimeStamp;
-      pDecoder->DecodeFrame2 (NULL, 0, pData, &sDstBufInfo);
+//      pDecoder->DecodeFrame2 (NULL, 0, pData, &sDstBufInfo);
+      memset(&sDstParseInfo, 0, sizeof(SParserBsInfo));
+      pDecoder->DecodeParser(pBuf + iBufPos, iSliceSize, &sDstParseInfo);
       if (sDstBufInfo.iBufferStatus == 1) {
         pDst[0] = sDstBufInfo.pDst[0];
         pDst[1] = sDstBufInfo.pDst[1];
@@ -451,6 +461,8 @@ int32_t main (int32_t iArgC, char* pArgV[]) {
   ISVCDecoder* pDecoder = NULL;
 
   SDecodingParam sDecParam = {0};
+  sDecParam.bParseOnly = true;
+
   string strInputFile (""), strOutputFile (""), strOptionFile (""), strLengthFile ("");
   int iLevelSetting = (int) WELS_LOG_WARNING;
   bool bLegacyCalling = false;
