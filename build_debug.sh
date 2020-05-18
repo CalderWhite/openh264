@@ -1,0 +1,2 @@
+g++ -O3 -DDEBUG -g -m64 -DX86_ASM -DHAVE_AVX2 -Wall -fno-strict-aliasing -fPIC -MMD -MP -fstack-protector-all -DGENERATED_VERSION_HEADER -g -DHAVE_AVX2 -I./codec/api/svc -I./codec/common/inc -Icodec/common/inc  -I./codec/decoder/core/inc -I./codec/decoder/plus/inc -I./codec/console/common/inc -I./codec/console/dec/inc -c -o codec/console/dec/src/h264dec.o codec/console/dec/src/h264dec.cpp
+g++ -o h264dec codec/console/dec/src/d3d9_utils.o codec/console/dec/src/h264dec.o -L. -ldecoder -lcommon -lconsole_common -m64 -lpthread
